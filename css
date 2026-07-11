@@ -1,0 +1,56 @@
+/* サイト全体の基本スタイル */
+body {
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+    line-height: 1.8;
+    color: #333;
+    background-color: #f9f9f9;
+    margin: 0;
+    padding: 20px;
+}
+
+/* コンテンツをカード型に整える */
+.section-card {
+    background: #fff;
+    padding: 30px;
+    margin: 20px 0;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+/* タイトル見出しの強化 */
+h2 {
+    border-left: 5px solid #d4af37; /* ゴールドのアクセント */
+    padding-left: 15px;
+    font-size: 1.8rem;
+    color: #1a1a1a;
+}
+
+/* テーブルデザインをモダンに */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+th, td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+}
+
+/* リンクをボタン風に装飾 */
+a.button-style {
+    display: inline-block;
+    padding: 12px 25px;
+    background-color: #1a1a1a;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+a.button-style:hover {
+    background-color: #d4af37;
+}
