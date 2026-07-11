@@ -54,3 +54,16 @@ a.button-style {
 a.button-style:hover {
     background-color: #d4af37;
 }
+/* 共通のスタイル（スマホ向けがベース） */
+.container {
+  width: 100%;
+  padding: 10px;
+}
+
+/* 画面幅が768px以上（タブレット・PC）の場合 */
+@media (min-width: 768px) {
+  .container {
+    width: 80%;
+    margin: 0 auto; /* 中央寄せ */
+  }
+}
