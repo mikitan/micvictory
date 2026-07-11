@@ -1,0 +1,36 @@
+import pandas as pd
+
+# Excelファイルを読み込み
+df = pd.read_excel('sales_data.xlsx')
+
+# '売上'列の合計を計算して新しい列に追加
+df['合計'] = df['単価'] * df['数量']
+
+# 結果を新しいExcelファイルに保存
+df.to_excel('processed_sales.xlsx', index=False)
+print('Excelファイルの加工が完了しました。')
+import requests
+from bs4 import BeautifulSoup
+
+url = 'https://www.example.com'
+response = requests.get(url)
+soup = BeautifulSoup(response.text, 'html.parser')
+
+# ページのタイトルを取得して表示
+print(f'Page Title: {soup.title.string}')
+
+# 特定のリンクをすべて取得する場合の例
+for link in soup.find_all('a'):
+    print(link.get('href'))
+import os
+
+# フォルダパスを指定
+folder_path = './my_files'
+prefix = '20260711_'
+
+for filename in os.listdir(folder_path):
+    # ファイルのみを対象にする
+    if os.path.isfile(os.path.join(folder_path, filename)):
+        new_name = prefix + filename
+        os.rename(os.path.join(folder_path, filename), os.path.join(folder_path, new_name))
+        print(f'Renamed: {filename} -> {new_name}')
