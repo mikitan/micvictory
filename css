@@ -1,80 +1,78 @@
-/* サイト全体の基本スタイル */
+/* 1. リセット・基本設定 (左右ブレ防止) */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scrollbar-gutter: stable; /* スクロールバーによるガタつき防止 */
+}
+
 body {
-    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
-    line-height: 1.8;
-    color: #333;
-    background-color: #f9f9f9;
-    margin: 0;
-    padding: 20px;
+  margin: 0;
+  padding: 20px;
+  font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+  line-height: 1.8;
+  color: #333;
+  background-color: #f9f9f9;
+  overflow-x: hidden; /* はみ出しによる横スクロール防止 */
 }
 
-/* コンテンツをカード型に整える */
-.section-card {
-    background: #fff;
-    padding: 30px;
-    margin: 20px 0;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-}
-
-/* タイトル見出しの強化 */
-h2 {
-    border-left: 5px solid #d4af37; /* ゴールドのアクセント */
-    padding-left: 15px;
-    font-size: 1.8rem;
-    color: #1a1a1a;
-}
-
-/* テーブルデザインをモダンに */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 20px 0;
-}
-th, td {
-    padding: 15px;
-    border-bottom: 1px solid #eee;
-    text-align: left;
-}
-th {
-    background-color: #f4f4f4;
-    font-weight: bold;
-}
-
-/* リンクをボタン風に装飾 */
-a.button-style {
-    display: inline-block;
-    padding: 12px 25px;
-    background-color: #1a1a1a;
-    color: #fff;
-    text-decoration: none;
-    border-radius: 5px;
-    transition: background 0.3s;
-}
-a.button-style:hover {
-    background-color: #d4af37;
-}
-/* 共通のスタイル（スマホ向けがベース） */
+/* 2. レイアウト用コンテナ */
 .container {
   width: 100%;
   padding: 10px;
 }
 
-/* 画面幅が768px以上（タブレット・PC）の場合 */
 @media (min-width: 768px) {
   .container {
     width: 80%;
-    margin: 0 auto; /* 中央寄せ */
+    margin: 0 auto; /* PC時は中央寄せ */
   }
 }
-body {
-  overflow-x: hidden;
-}
-html {
-  /* スクロールバー用のスペースを常に確保する */
-  scrollbar-gutter: stable;
-}
-* {
-  box-sizing: border-box;
+
+/* 3. コンポーネントスタイル */
+.section-card {
+  background: #fff;
+  padding: 30px;
+  margin: 20px 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 
+h2 {
+  border-left: 5px solid #d4af37;
+  padding-left: 15px;
+  font-size: 1.8rem;
+  color: #1a1a1a;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+th, td {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+a.button-style {
+  display: inline-block;
+  padding: 12px 25px;
+  background-color: #1a1a1a;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: background 0.3s;
+}
+
+a.button-style:hover {
+  background-color: #d4af37;
+}
