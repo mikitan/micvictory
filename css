@@ -67,3 +67,14 @@ a.button-style:hover {
     margin: 0 auto; /* 中央寄せ */
   }
 }
+body {
+  overflow-x: hidden;
+}
+html {
+  /* スクロールバー用のスペースを常に確保する */
+  scrollbar-gutter: stable;
+}
+* {
+  box-sizing: border-box;
+}
+
