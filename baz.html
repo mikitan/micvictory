@@ -1,0 +1,851 @@
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  Zap,
+  Link2,
+  BarChart3,
+  Copy,
+  Check,
+  Plus,
+  Trash2,
+  TrendingUp,
+  Sparkles,
+  Loader2,
+  Heart,
+  MessageCircle,
+  Repeat2,
+  Send,
+  ExternalLink,
+} from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
+
+// ---------- MIC VICTORY design tokens ----------
+// bg #06080f / panel #0d1220 / line #1b2338
+// neon cyan #00f0ff / neon magenta #ff2ec4 / signal gold #ffce3d
+// display: Orbitron / body: Noto Sans JP / mono: Share Tech Mono
+
+const FONT_LINK_ID = "mv-threads-fonts";
+
+function useFonts() {
+  useEffect(() => {
+    if (document.getElementById(FONT_LINK_ID)) return;
+    const link = document.createElement("link");
+    link.id = FONT_LINK_ID;
+    link.rel = "stylesheet";
+    link.href =
+      "https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Noto+Sans+JP:wght@400;500;700&display=swap";
+    document.head.appendChild(link);
+  }, []);
+}
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+// Threads公式のシェアインテントURL（アプリ/Webでコンポーザーが開く）
+const threadsShareUrl = (text) => `https://www.threads.net/intent/post?text=${encodeURIComponent(text)}`;
+
+const GENRES = [
+  "副業・稼ぐ系",
+  "AI活用術",
+  "ライフハック",
+  "美容・健康",
+  "ガジェット",
+  "節約・お金",
+  "自己啓発",
+];
+
+const TONES = ["共感・体験談", "断言・煽り強め", "淡々と情報整理", "問いかけ型"];
+
+// ---------- storage helpers ----------
+async function loadState() {
+  try {
+    const linksRes = await window.storage.get("threadshub:links");
+    const postsRes = await window.storage.get("threadshub:posts");
+    const clicksRes = await window.storage.get("threadshub:clicklog");
+    return {
+      links: linksRes ? JSON.parse(linksRes.value) : [],
+      posts: postsRes ? JSON.parse(postsRes.value) : [],
+      clickLog: clicksRes ? JSON.parse(clicksRes.value) : [],
+    };
+  } catch {
+    return { links: [], posts: [], clickLog: [] };
+  }
+}
+
+async function saveLinks(links) {
+  try {
+    await window.storage.set("threadshub:links", JSON.stringify(links));
+  } catch {}
+}
+async function savePosts(posts) {
+  try {
+    await window.storage.set("threadshub:posts", JSON.stringify(posts));
+  } catch {}
+}
+async function saveClickLog(log) {
+  try {
+    await window.storage.set("threadshub:clicklog", JSON.stringify(log));
+  } catch {}
+}
+
+function last7Days() {
+  const days = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+// ---------- UI atoms ----------
+function GlowButton({ children, onClick, disabled, variant = "cyan", className = "", type = "button" }) {
+  const colors = {
+    cyan: "border-[#00f0ff] text-[#00f0ff] shadow-[0_0_14px_-2px_#00f0ff] hover:shadow-[0_0_22px_-1px_#00f0ff]",
+    magenta:
+      "border-[#ff2ec4] text-[#ff2ec4] shadow-[0_0_14px_-2px_#ff2ec4] hover:shadow-[0_0_22px_-1px_#ff2ec4]",
+    gold: "border-[#ffce3d] text-[#ffce3d] shadow-[0_0_14px_-2px_#ffce3d] hover:shadow-[0_0_22px_-1px_#ffce3d]",
+  };
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`px-4 py-2 rounded-md border bg-black/40 font-medium tracking-wide transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.97] ${colors[variant]} ${className}`}
+      style={{ fontFamily: "'Share Tech Mono', monospace" }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Panel({ children, className = "" }) {
+  return (
+    <div
+      className={`rounded-xl border border-[#1b2338] bg-[#0d1220]/80 backdrop-blur-sm ${className}`}
+      style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionLabel({ eyebrow, title }) {
+  return (
+    <div className="mb-4">
+      <div
+        className="text-[10px] tracking-[0.3em] text-[#ff2ec4] mb-1"
+        style={{ fontFamily: "'Share Tech Mono', monospace" }}
+      >
+        {eyebrow}
+      </div>
+      <h2
+        className="text-xl text-white tracking-wide"
+        style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700 }}
+      >
+        {title}
+      </h2>
+    </div>
+  );
+}
+
+// ---------- Tab: 投稿AI生成 ----------
+function PostGenTab({ posts, setPosts }) {
+  const [genre, setGenre] = useState(GENRES[0]);
+  const [tone, setTone] = useState(TONES[0]);
+  const [topic, setTopic] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [drafts, setDrafts] = useState([]);
+  const [error, setError] = useState("");
+  const [copiedIdx, setCopiedIdx] = useState(null);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [suggestError, setSuggestError] = useState("");
+
+  const generate = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    setDrafts([]);
+    try {
+      const sys = `あなたはThreads(スレッズ)運用に精通したプロのSNSコピーライターです。
+Threadsは「会話」を重視するプラットフォームで、宣伝色が強い投稿や一方的な発信は伸びません。
+以下の条件でThreads投稿の下書きを3パターン作成してください。
+
+ジャンル: ${genre}
+トーン: ${tone}
+トピック/伝えたいこと: ${topic || "(指定なし。ジャンルとトーンに合う汎用的な投稿にする)"}
+
+各投稿は以下を満たすこと:
+- 120〜220文字程度
+- 冒頭1行で読者の興味を引く(結論・意外性・問いかけのいずれか)
+- 最後にフォロワーとの会話が生まれる一言(問いかけ or 共感の呼びかけ)を入れる
+- 宣伝っぽい言い回しは避け、体験や気づきとして語る
+- 絵文字は0〜2個まで、使いすぎない
+
+出力は必ず以下のJSON形式のみ。前置き・後置き・コードブロック記号は一切つけないこと:
+[{"hook":"冒頭のフックの狙い(短く)","body":"投稿本文"}, ...]`;
+
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: sys }],
+        }),
+      });
+      const data = await res.json();
+      const textBlock = (data.content || []).find((b) => b.type === "text");
+      const raw = textBlock ? textBlock.text : "";
+      const clean = raw.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setDrafts(parsed);
+    } catch (e) {
+      setError("生成に失敗した。もう一度試してみて。");
+    } finally {
+      setLoading(false);
+    }
+  }, [genre, tone, topic]);
+
+  const saveDraft = (d) => {
+    const entry = {
+      id: uid(),
+      body: d.body,
+      hook: d.hook,
+      genre,
+      createdAt: Date.now(),
+      likes: 0,
+      comments: 0,
+      reposts: 0,
+    };
+    const next = [entry, ...posts].slice(0, 50);
+    setPosts(next);
+    savePosts(next);
+  };
+
+  const updateEngagement = (id, field, value) => {
+    const n = Math.max(0, Number(value) || 0);
+    const next = posts.map((p) => (p.id === id ? { ...p, [field]: n } : p));
+    setPosts(next);
+    savePosts(next);
+  };
+
+  const removePost = (id) => {
+    const next = posts.filter((p) => p.id !== id);
+    setPosts(next);
+    savePosts(next);
+  };
+
+  const suggestTopics = useCallback(async () => {
+    setSuggestLoading(true);
+    setSuggestError("");
+    setSuggestions([]);
+    try {
+      const history = posts.slice(0, 20).map((p) => ({
+        genre: p.genre,
+        body: p.body.slice(0, 140),
+        likes: p.likes || 0,
+        comments: p.comments || 0,
+        reposts: p.reposts || 0,
+      }));
+
+      const sys = `あなたはThreads運用のグロース戦略アドバイザーです。
+以下は過去に投稿した内容と、その反応（いいね・コメント・リポスト）の実データです。
+コメントは会話が生まれた度合いを示すので特に重視してください。データが少ない/ゼロの場合は一般的なThreadsのトレンドとジャンル傾向から推測してください。
+
+過去の投稿データ(JSON):
+${JSON.stringify(history)}
+
+これを踏まえて、次に投稿すべきネタを3つ提案してください。
+それぞれ以下を含めること:
+- genre: ${JSON.stringify(GENRES)} の中から最も適したもの
+- topic: 具体的な投稿ネタ(1文、具体的であるほど良い)
+- reason: なぜこのネタを推すのか、データや傾向に基づいた根拠(40字程度)
+
+出力は必ず以下のJSON形式のみ。前置き・後置き・コードブロック記号は一切つけないこと:
+[{"genre":"...","topic":"...","reason":"..."}, ...]`;
+
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: sys }],
+        }),
+      });
+      const data = await res.json();
+      const textBlock = (data.content || []).find((b) => b.type === "text");
+      const raw = textBlock ? textBlock.text : "";
+      const clean = raw.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setSuggestions(parsed);
+    } catch (e) {
+      setSuggestError("提案の生成に失敗した。もう一度試してみて。");
+    } finally {
+      setSuggestLoading(false);
+    }
+  }, [posts]);
+
+  const applySuggestion = (s) => {
+    if (GENRES.includes(s.genre)) setGenre(s.genre);
+    setTopic(s.topic);
+  };
+
+  const copy = async (text, idx) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 1500);
+    } catch {}
+  };
+
+  return (
+    <div className="grid md:grid-cols-2 gap-5">
+      <Panel className="p-5">
+        <SectionLabel eyebrow="STEP 01 — SETUP" title="投稿を生成する" />
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs text-gray-400 block mb-1.5">ジャンル</label>
+            <div className="flex flex-wrap gap-2">
+              {GENRES.map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setGenre(g)}
+                  className={`text-xs px-2.5 py-1.5 rounded-md border transition ${
+                    genre === g
+                      ? "border-[#00f0ff] text-[#00f0ff] bg-[#00f0ff]/10"
+                      : "border-[#1b2338] text-gray-400 hover:border-gray-500"
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1.5">トーン</label>
+            <div className="flex flex-wrap gap-2">
+              {TONES.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTone(t)}
+                  className={`text-xs px-2.5 py-1.5 rounded-md border transition ${
+                    tone === t
+                      ? "border-[#ff2ec4] text-[#ff2ec4] bg-[#ff2ec4]/10"
+                      : "border-[#1b2338] text-gray-400 hover:border-gray-500"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs text-gray-400">次のネタに迷ったら</label>
+              <button
+                onClick={suggestTopics}
+                disabled={suggestLoading}
+                className="text-[11px] flex items-center gap-1 px-2 py-1 rounded border border-[#ffce3d] text-[#ffce3d] hover:bg-[#ffce3d]/10 disabled:opacity-30"
+              >
+                {suggestLoading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                AIにネタ提案してもらう
+              </button>
+            </div>
+            {suggestError && <div className="text-xs text-red-400 mb-2">{suggestError}</div>}
+            {suggestions.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => applySuggestion(s)}
+                    className="w-full text-left border border-[#1b2338] hover:border-[#ffce3d] rounded-lg px-3 py-2 bg-black/30 transition"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#ffce3d]/10 text-[#ffce3d]">{s.genre}</span>
+                    </div>
+                    <div className="text-sm text-gray-100">{s.topic}</div>
+                    <div className="text-[11px] text-gray-500 mt-0.5">{s.reason}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+            {posts.length === 0 && suggestions.length === 0 && (
+              <div className="text-[11px] text-gray-600 mb-2">
+                履歴に投稿を保存＆反応を記録するほど、提案の精度が上がる。
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1.5">トピック（任意）</label>
+            <textarea
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="例：楽天セールでの節約術、AIツールで作業時間半分にした話 など"
+              rows={3}
+              className="w-full bg-black/40 border border-[#1b2338] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#00f0ff] resize-none"
+            />
+          </div>
+          <GlowButton onClick={generate} disabled={loading} variant="cyan" className="w-full flex items-center justify-center gap-2">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+            {loading ? "生成中..." : "3パターン生成"}
+          </GlowButton>
+          {error && <div className="text-xs text-red-400">{error}</div>}
+        </div>
+      </Panel>
+
+      <Panel className="p-5">
+        <SectionLabel eyebrow="STEP 02 — OUTPUT" title="下書き" />
+        {drafts.length === 0 && !loading && (
+          <div className="text-sm text-gray-500 py-8 text-center border border-dashed border-[#1b2338] rounded-lg">
+            まだ生成していない。左の条件を決めて生成を押して。
+          </div>
+        )}
+        <div className="space-y-3">
+          {drafts.map((d, idx) => (
+            <div key={idx} className="border border-[#1b2338] rounded-lg p-3 bg-black/30">
+              <div className="text-[10px] text-[#ffce3d] mb-1.5" style={{ fontFamily: "'Share Tech Mono', monospace" }}>
+                狙い: {d.hook}
+              </div>
+              <div className="text-sm text-gray-100 whitespace-pre-wrap mb-3 leading-relaxed">{d.body}</div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => copy(d.body, idx)}
+                  className="text-xs flex items-center gap-1 px-2.5 py-1 rounded border border-[#1b2338] text-gray-300 hover:border-gray-500"
+                >
+                  {copiedIdx === idx ? <Check size={12} /> : <Copy size={12} />}
+                  {copiedIdx === idx ? "コピー済" : "コピー"}
+                </button>
+                <button
+                  onClick={() => saveDraft(d)}
+                  className="text-xs flex items-center gap-1 px-2.5 py-1 rounded border border-[#1b2338] text-gray-300 hover:border-gray-500"
+                >
+                  <Plus size={12} />
+                  履歴に保存
+                </button>
+                <a
+                  href={threadsShareUrl(d.body)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs flex items-center gap-1 px-2.5 py-1 rounded border border-[#00f0ff] text-[#00f0ff] hover:bg-[#00f0ff]/10 ml-auto"
+                >
+                  <ExternalLink size={12} />
+                  Threadsで共有
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      {posts.length > 0 && (
+        <Panel className="p-5 md:col-span-2">
+          <SectionLabel eyebrow="STEP 03 — TRACK" title="投稿したら、いいね・コメントを記録する" />
+          <p className="text-xs text-gray-500 mb-4">
+            Threadsに実際に投稿したあと、ここに反応の数を入力すると分析タブに反映される。
+          </p>
+          <div className="space-y-2">
+            {posts.slice(0, 12).map((p) => (
+              <div key={p.id} className="border border-[#1b2338] rounded-lg p-3 bg-black/30">
+                <div className="flex items-start gap-3">
+                  {/* Threads風プレビュー */}
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00f0ff] to-[#ff2ec4] flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-gray-400 mb-0.5">mic_victory</div>
+                    <div className="text-sm text-gray-100 whitespace-pre-wrap leading-relaxed">{p.body}</div>
+                    <div className="flex items-center gap-4 mt-3">
+                      <label className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <Heart size={14} className="text-[#ff2ec4]" />
+                        <input
+                          type="number"
+                          value={p.likes}
+                          onChange={(e) => updateEngagement(p.id, "likes", e.target.value)}
+                          className="w-14 bg-black/40 border border-[#1b2338] rounded px-1.5 py-0.5 text-gray-200 focus:outline-none focus:border-[#ff2ec4]"
+                        />
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <MessageCircle size={14} className="text-[#00f0ff]" />
+                        <input
+                          type="number"
+                          value={p.comments}
+                          onChange={(e) => updateEngagement(p.id, "comments", e.target.value)}
+                          className="w-14 bg-black/40 border border-[#1b2338] rounded px-1.5 py-0.5 text-gray-200 focus:outline-none focus:border-[#00f0ff]"
+                        />
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <Repeat2 size={14} className="text-[#ffce3d]" />
+                        <input
+                          type="number"
+                          value={p.reposts}
+                          onChange={(e) => updateEngagement(p.id, "reposts", e.target.value)}
+                          className="w-14 bg-black/40 border border-[#1b2338] rounded px-1.5 py-0.5 text-gray-200 focus:outline-none focus:border-[#ffce3d]"
+                        />
+                      </label>
+                      <a
+                        href={threadsShareUrl(p.body)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-auto text-gray-500 hover:text-[#00f0ff]"
+                        title="Threadsで共有"
+                      >
+                        <Send size={14} />
+                      </a>
+                      <button onClick={() => removePost(p.id)} className="text-gray-500 hover:text-red-400">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
+    </div>
+  );
+}
+
+// ---------- Tab: アフィリリンク管理 ----------
+function LinksTab({ links, setLinks, clickLog, setClickLog }) {
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const [payout, setPayout] = useState("");
+
+  const addLink = () => {
+    if (!name.trim() || !url.trim()) return;
+    const entry = { id: uid(), name: name.trim(), url: url.trim(), payout: Number(payout) || 0, clicks: 0, createdAt: Date.now() };
+    const next = [entry, ...links];
+    setLinks(next);
+    saveLinks(next);
+    setName("");
+    setUrl("");
+    setPayout("");
+  };
+
+  const removeLink = (id) => {
+    const next = links.filter((l) => l.id !== id);
+    setLinks(next);
+    saveLinks(next);
+  };
+
+  const logClick = (id) => {
+    const next = links.map((l) => (l.id === id ? { ...l, clicks: l.clicks + 1 } : l));
+    setLinks(next);
+    saveLinks(next);
+    const today = new Date().toISOString().slice(0, 10);
+    const logNext = [...clickLog, { id: uid(), linkId: id, date: today }];
+    setClickLog(logNext);
+    saveClickLog(logNext);
+  };
+
+  const totalClicks = links.reduce((s, l) => s + l.clicks, 0);
+  const totalEst = links.reduce((s, l) => s + l.clicks * l.payout, 0);
+
+  return (
+    <div className="space-y-5">
+      <Panel className="p-5">
+        <SectionLabel eyebrow="LINK REGISTRY" title="アフィリリンクを登録" />
+        <div className="grid md:grid-cols-4 gap-3">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="案件名（例：楽天セール）"
+            className="bg-black/40 border border-[#1b2338] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#00f0ff] md:col-span-1"
+          />
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="リンクURL"
+            className="bg-black/40 border border-[#1b2338] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#00f0ff] md:col-span-2"
+          />
+          <input
+            value={payout}
+            onChange={(e) => setPayout(e.target.value)}
+            placeholder="1クリック単価(円)"
+            type="number"
+            className="bg-black/40 border border-[#1b2338] rounded-md px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-[#00f0ff]"
+          />
+        </div>
+        <GlowButton onClick={addLink} variant="magenta" className="mt-3 flex items-center gap-2">
+          <Plus size={14} /> 登録
+        </GlowButton>
+      </Panel>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard label="登録リンク数" value={links.length} unit="件" color="#00f0ff" />
+        <StatCard label="累計クリック" value={totalClicks} unit="回" color="#ff2ec4" />
+        <StatCard label="推定累計収益" value={totalEst.toLocaleString()} unit="円" color="#ffce3d" />
+        <StatCard
+          label="平均単価"
+          value={links.length ? (links.reduce((s, l) => s + l.payout, 0) / links.length).toFixed(1) : "0"}
+          unit="円"
+          color="#00f0ff"
+        />
+      </div>
+
+      <Panel className="p-5">
+        <SectionLabel eyebrow="ACTIVE LINKS" title="リンク一覧" />
+        {links.length === 0 && <div className="text-sm text-gray-500 py-6 text-center">まだリンクがない。上で登録して。</div>}
+        <div className="space-y-2">
+          {links.map((l) => (
+            <div key={l.id} className="flex items-center justify-between border border-[#1b2338] rounded-lg px-3 py-2.5 bg-black/30 gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm text-gray-100 font-medium truncate">{l.name}</div>
+                <div className="text-xs text-gray-500 truncate">{l.url}</div>
+              </div>
+              <div className="text-xs text-[#ffce3d] whitespace-nowrap" style={{ fontFamily: "'Share Tech Mono', monospace" }}>
+                {l.clicks}回 / @{l.payout}円
+              </div>
+              <button
+                onClick={() => logClick(l.id)}
+                title="クリックを記録（自分の投稿からの流入を記録する用）"
+                className="text-xs px-2.5 py-1.5 rounded border border-[#00f0ff] text-[#00f0ff] hover:bg-[#00f0ff]/10 whitespace-nowrap"
+              >
+                +1 記録
+              </button>
+              <button onClick={() => removeLink(l.id)} className="text-gray-500 hover:text-red-400">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </Panel>
+    </div>
+  );
+}
+
+function StatCard({ label, value, unit, color }) {
+  return (
+    <Panel className="p-4">
+      <div className="text-[10px] text-gray-500 tracking-wider mb-1">{label}</div>
+      <div className="flex items-baseline gap-1">
+        <span className="text-2xl font-bold" style={{ color, fontFamily: "'Orbitron', sans-serif" }}>
+          {value}
+        </span>
+        <span className="text-xs text-gray-500">{unit}</span>
+      </div>
+    </Panel>
+  );
+}
+
+// ---------- Tab: 分析ダッシュボード ----------
+function AnalyticsTab({ links, clickLog, posts }) {
+  const days = useMemo(() => last7Days(), []);
+  const chartData = useMemo(() => {
+    return days.map((d) => {
+      const count = clickLog.filter((c) => c.date === d).length;
+      return { day: d.slice(5), clicks: count };
+    });
+  }, [days, clickLog]);
+
+  const totalEst = links.reduce((s, l) => s + l.clicks * l.payout, 0);
+  const bestLink = links.slice().sort((a, b) => b.clicks * b.payout - a.clicks * a.payout)[0];
+
+  const totalLikes = posts.reduce((s, p) => s + (p.likes || 0), 0);
+  const totalComments = posts.reduce((s, p) => s + (p.comments || 0), 0);
+  const totalReposts = posts.reduce((s, p) => s + (p.reposts || 0), 0);
+  const topPost = posts
+    .slice()
+    .sort((a, b) => (b.likes || 0) + (b.comments || 0) * 2 - ((a.likes || 0) + (a.comments || 0) * 2))[0];
+
+  return (
+    <div className="space-y-5">
+      {posts.length > 0 && (
+        <Panel className="p-5">
+          <SectionLabel eyebrow="ENGAGEMENT" title="投稿の反応" />
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <Heart size={16} className="text-[#ff2ec4]" />
+              <span className="text-xl font-bold text-white" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+                {totalLikes}
+              </span>
+              <span className="text-[10px] text-gray-500">いいね</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <MessageCircle size={16} className="text-[#00f0ff]" />
+              <span className="text-xl font-bold text-white" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+                {totalComments}
+              </span>
+              <span className="text-[10px] text-gray-500">コメント</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Repeat2 size={16} className="text-[#ffce3d]" />
+              <span className="text-xl font-bold text-white" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+                {totalReposts}
+              </span>
+              <span className="text-[10px] text-gray-500">リポスト</span>
+            </div>
+          </div>
+          {topPost && (
+            <div className="border-t border-[#1b2338] pt-3">
+              <div className="text-[10px] text-gray-500 mb-1.5 tracking-wide">最も反応が良かった投稿</div>
+              <div className="text-sm text-gray-200 line-clamp-2">{topPost.body}</div>
+              <div className="text-xs text-gray-500 mt-1">
+                ❤ {topPost.likes || 0} ・ 💬 {topPost.comments || 0} ・ ↻ {topPost.reposts || 0}
+              </div>
+            </div>
+          )}
+        </Panel>
+      )}
+
+      <Panel className="p-5">
+        <SectionLabel eyebrow="7-DAY TREND" title="クリック推移" />
+        {clickLog.length === 0 ? (
+          <div className="text-sm text-gray-500 py-8 text-center">記録がまだない。リンク管理タブで「+1記録」を押すとここに反映される。</div>
+        ) : (
+          <div style={{ width: "100%", height: 220 }}>
+            <ResponsiveContainer>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1b2338" />
+                <XAxis dataKey="day" stroke="#555" fontSize={11} />
+                <YAxis stroke="#555" fontSize={11} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ background: "#0d1220", border: "1px solid #1b2338", borderRadius: 8, color: "#fff" }}
+                  labelStyle={{ color: "#00f0ff" }}
+                />
+                <Bar dataKey="clicks" fill="#ff2ec4" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </Panel>
+
+      <div className="grid md:grid-cols-3 gap-4">
+        <Panel className="p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp size={16} className="text-[#ffce3d]" />
+            <div className="text-xs text-gray-400 tracking-wide">推定累計収益</div>
+          </div>
+          <div className="text-3xl font-bold text-[#ffce3d]" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+            ¥{totalEst.toLocaleString()}
+          </div>
+        </Panel>
+        <Panel className="p-5">
+          <div className="text-xs text-gray-400 tracking-wide mb-2">ベストパフォーマンス案件</div>
+          <div className="text-lg text-white font-medium truncate">{bestLink ? bestLink.name : "—"}</div>
+          <div className="text-xs text-gray-500 mt-1">{bestLink ? `${bestLink.clicks}クリック / ¥${(bestLink.clicks * bestLink.payout).toLocaleString()}` : "データなし"}</div>
+        </Panel>
+        <Panel className="p-5">
+          <div className="text-xs text-gray-400 tracking-wide mb-2">保存済み投稿下書き</div>
+          <div className="text-3xl font-bold text-[#00f0ff]" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+            {posts.length}
+          </div>
+        </Panel>
+      </div>
+
+      <Panel className="p-5">
+        <SectionLabel eyebrow="PLAYBOOK" title="今のThreadsで伸ばす基本" />
+        <ul className="text-sm text-gray-300 space-y-2 list-none">
+          {[
+            "宣伝臭を消す：告知ではなく体験・気づきとして語る",
+            "最後は問いかけで締めて会話を発生させる（返信数がアルゴリズムで重視される）",
+            "Threads単体の広告分配はまだ日本未対応。今はInstagram/ブログへの導線とアフィリで間接収益化するのが本線",
+            "同じジャンルで投稿を継続し、独自の一次情報・体験談を蓄積するとファン化が進む",
+          ].map((t, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="text-[#ff2ec4] mt-0.5">▸</span>
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+    </div>
+  );
+}
+
+// ---------- Root ----------
+export default function ThreadsProfitHub() {
+  useFonts();
+  const [tab, setTab] = useState("gen");
+  const [ready, setReady] = useState(false);
+  const [links, setLinks] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [clickLog, setClickLog] = useState([]);
+
+  useEffect(() => {
+    loadState().then((s) => {
+      setLinks(s.links);
+      setPosts(s.posts);
+      setClickLog(s.clickLog);
+      setReady(true);
+    });
+  }, []);
+
+  const tabs = [
+    { id: "gen", label: "投稿生成", icon: Sparkles },
+    { id: "links", label: "リンク管理", icon: Link2 },
+    { id: "stats", label: "分析", icon: BarChart3 },
+  ];
+
+  return (
+    <div
+      className="min-h-screen w-full text-gray-200"
+      style={{
+        background: "radial-gradient(ellipse at top, #0d1428 0%, #06080f 60%)",
+        fontFamily: "'Noto Sans JP', sans-serif",
+      }}
+    >
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <header className="mb-8 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Zap size={20} className="text-[#ffce3d]" />
+              <span
+                className="text-xs tracking-[0.35em] text-[#00f0ff]"
+                style={{ fontFamily: "'Share Tech Mono', monospace" }}
+              >
+                MIC VICTORY
+              </span>
+            </div>
+            <h1
+              className="text-2xl md:text-3xl text-white tracking-wide"
+              style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 900 }}
+            >
+              THREADS PROFIT HUB
+            </h1>
+            <p className="text-xs text-gray-500 mt-1">投稿生成 × アフィリ管理 × 収益分析</p>
+          </div>
+        </header>
+
+        <nav className="flex gap-2 mb-6 border-b border-[#1b2338] pb-3">
+          {tabs.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-md text-sm transition ${
+                  active
+                    ? "bg-[#00f0ff]/10 text-[#00f0ff] border border-[#00f0ff]/60"
+                    : "text-gray-500 border border-transparent hover:text-gray-300"
+                }`}
+              >
+                <Icon size={14} />
+                {t.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {!ready ? (
+          <div className="text-center text-gray-500 py-16 flex items-center justify-center gap-2">
+            <Loader2 size={16} className="animate-spin" /> 読み込み中...
+          </div>
+        ) : (
+          <>
+            {tab === "gen" && <PostGenTab posts={posts} setPosts={setPosts} />}
+            {tab === "links" && (
+              <LinksTab links={links} setLinks={setLinks} clickLog={clickLog} setClickLog={setClickLog} />
+            )}
+            {tab === "stats" && <AnalyticsTab links={links} clickLog={clickLog} posts={posts} />}
+          </>
+        )}
+
+        <footer className="mt-10 text-center text-[10px] text-gray-600" style={{ fontFamily: "'Share Tech Mono', monospace" }}>
+          MIC VICTORY — THREADS PROFIT HUB v1.0
+        </footer>
+      </div>
+    </div>
+  );
+}
