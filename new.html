@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MICVICTORY | 音楽・ゲーム・BLAUND・ショップ</title>
+<meta name="description" content="MICVICTORY公式ハブ。オリジナル音楽制作ツール、ポメラニアンゲーム、サイバーパンク漫画BLAUND、公式ショップをここから。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #090b12;
+    --bg-panel: #10141f;
+    --cyan: #00e5ff;
+    --magenta: #ff2e88;
+    --purple: #8b5cf6;
+    --gold: #ffb800;
+    --ink: #e9edf7;
+    --ink-dim: #8b93a7;
+    --line: rgba(233,237,247,0.08);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Noto Sans JP', sans-serif;
+    line-height:1.7;
+    overflow-x:hidden;
+  }
+  .bg-grid{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.045) 1px, transparent 1px);
+    background-size:48px 48px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 20%, black, transparent 75%);
+  }
+  header{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 20px;
+    background:rgba(9,11,18,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .logo{
+    font-family:'Orbitron', sans-serif;
+    font-weight:900;
+    letter-spacing:0.06em;
+    font-size:1.05rem;
+    color:var(--ink);
+  }
+  .logo span{color:var(--cyan);}
+  nav.top-links{display:flex; gap:14px; font-size:0.72rem; font-family:'Share Tech Mono',monospace;}
+  nav.top-links a{color:var(--ink-dim); text-decoration:none;}
+  nav.top-links a:hover{color:var(--cyan);}
+
+  main{position:relative; z-index:1;}
+
+  .hero{
+    padding:64px 20px 40px;
+    text-align:center;
+    max-width:640px;
+    margin:0 auto;
+  }
+  .eyebrow{
+    font-family:'Share Tech Mono',monospace;
+    font-size:0.72rem;
+    color:var(--cyan);
+    letter-spacing:0.15em;
+    margin-bottom:14px;
+  }
+  .hero h1{
+    font-family:'Orbitron', sans-serif;
+    font-weight:900;
+    font-size:clamp(1.9rem, 8vw, 2.6rem);
+    line-height:1.3;
+    background:linear-gradient(90deg, var(--cyan), var(--magenta));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    margin-bottom:16px;
+  }
+  .hero p{color:var(--ink-dim); font-size:0.95rem; max-width:480px; margin:0 auto;}
+
+  .portal-select{
+    padding:12px 16px 60px;
+    max-width:520px;
+    margin:0 auto;
+  }
+  .portal-select .label{
+    font-family:'Share Tech Mono',monospace;
+    font-size:0.7rem;
+    color:var(--ink-dim);
+    text-align:center;
+    letter-spacing:0.12em;
+    margin-bottom:18px;
+  }
+  .portal{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:18px 18px;
+    margin-bottom:14px;
+    border-radius:14px;
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    text-decoration:none;
+    color:var(--ink);
+    overflow:hidden;
+    transition:transform 0.25s ease, border-color 0.25s ease;
+  }
+  .portal:active{transform:scale(0.98);}
+  .portal::before{
+    content:'';
+    position:absolute; inset:0;
+    opacity:0; transition:opacity 0.25s ease;
+    background:linear-gradient(120deg, var(--glow) 0%, transparent 60%);
+  }
+  .portal:hover::before{opacity:0.16;}
+  .portal:hover{border-color:var(--glow);}
+  .portal .idx{
+    font-family:'Orbitron',sans-serif;
+    font-weight:700;
+    font-size:0.75rem;
+    color:var(--glow);
+    border:1px solid var(--glow);
+    border-radius:8px;
+    padding:8px 10px;
+    white-space:nowrap;
+    z-index:1;
+  }
+  .portal .body{z-index:1; flex:1;}
+  .portal .tag{
+    font-family:'Share Tech Mono',monospace;
+    font-size:0.66rem;
+    color:var(--glow);
+    letter-spacing:0.08em;
+    display:block;
+    margin-bottom:3px;
+  }
+  .portal h3{font-size:1.02rem; font-family:'Noto Sans JP'; font-weight:700; margin-bottom:3px;}
+  .portal p{font-size:0.8rem; color:var(--ink-dim); margin:0;}
+  .portal .arrow{font-size:1.2rem; color:var(--glow); z-index:1;}
+
+  .p-music{--glow: var(--cyan);}
+  .p-game{--glow: var(--magenta);}
+  .p-manga{--glow: var(--purple);}
+  .p-shop{--glow: var(--gold); border-color:rgba(255,184,0,0.35);}
+
+  .shop-cta{
+    margin-top:6px;
+    font-size:0.72rem;
+    text-align:center;
+    color:var(--gold);
+    font-family:'Share Tech Mono',monospace;
+  }
+
+  section.strip{
+    max-width:640px;
+    margin:0 auto;
+    padding:0 20px 50px;
+  }
+  .strip h2{
+    font-family:'Orbitron',sans-serif;
+    font-size:0.95rem;
+    letter-spacing:0.04em;
+    margin-bottom:16px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .strip h2::before{
+    content:'';
+    width:8px; height:8px; border-radius:50%;
+    background:var(--cyan);
+    box-shadow:0 0 8px var(--cyan);
+  }
+  .video-wrap{
+    position:relative; width:100%; padding-top:56.25%;
+    border-radius:12px; overflow:hidden; margin-bottom:14px;
+    border:1px solid var(--line);
+  }
+  .video-wrap iframe{position:absolute; inset:0; width:100%; height:100%; border:0;}
+
+  .follow-row{display:flex; gap:10px; flex-wrap:wrap;}
+  .follow-row a{
+    flex:1; min-width:130px; text-align:center;
+    padding:12px; border-radius:10px;
+    font-size:0.8rem; text-decoration:none;
+    border:1px solid var(--line); color:var(--ink);
+    font-family:'Share Tech Mono',monospace;
+  }
+  .follow-row a:hover{border-color:var(--cyan); color:var(--cyan);}
+
+  .ad-slot{
+    max-width:640px; margin:0 auto 50px; padding:0 20px;
+  }
+  .ad-slot .box{
+    border:1px dashed var(--line);
+    border-radius:10px;
+    padding:22px;
+    text-align:center;
+    font-size:0.7rem;
+    color:var(--ink-dim);
+    font-family:'Share Tech Mono',monospace;
+  }
+
+  footer{
+    border-top:1px solid var(--line);
+    padding:28px 20px 40px;
+    text-align:center;
+    font-size:0.7rem;
+    color:var(--ink-dim);
+    font-family:'Share Tech Mono',monospace;
+  }
+  footer a{color:var(--ink-dim);}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+
+<header>
+  <div class="logo">MIC<span>VICTORY</span></div>
+  <nav class="top-links">
+    <a href="#portals">CATEGORY</a>
+    <a href="#follow">FOLLOW</a>
+  </nav>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="eyebrow">MICVICTORY OFFICIAL HUB</div>
+    <h1>音楽・ゲーム・物語・ショップ<br>すべてはここから起動する</h1>
+    <p>堺の伝統とサイバーパンクの美意識を軸に、音楽制作ツール、オリジナルゲーム、漫画IP「BLAUND」、そして公式ショップを展開しています。</p>
+  </section>
+
+  <section class="portal-select" id="portals">
+    <div class="label">▼ SELECT CATEGORY ▼</div>
+
+    <a class="portal p-music" href="https://mikitan.github.io/micvictory.html">
+      <div class="idx">01</div>
+      <div class="body">
+        <span class="tag">MUSIC TOOLS / DTM</span>
+        <h3>音楽ツール</h3>
+        <p>ベースシンセ、ビートメーカー、ギターメロディなど自作DTMアプリ一式</p>
+      </div>
+      <div class="arrow">›</div>
+    </a>
+
+    <a class="portal p-game" href="#" data-slot="game">
+      <div class="idx">02</div>
+      <div class="body">
+        <span class="tag">ORIGINAL GAMES</span>
+        <h3>ゲーム</h3>
+        <p>ポメラニアン主役のオリジナルミニゲーム・アーケード作品集</p>
+      </div>
+      <div class="arrow">›</div>
+    </a>
+
+    <a class="portal p-manga" href="#" data-slot="manga">
+      <div class="idx">03</div>
+      <div class="body">
+        <span class="tag">MANGA / ANIME IP</span>
+        <h3>BLAUND</h3>
+        <p>脳ハッキング音楽アプリを巡るサイバーパンク・サスペンス漫画</p>
+      </div>
+      <div class="arrow">›</div>
+    </a>
+
+    <a class="portal p-shop" href="https://mikitan.github.io/shop.html">
+      <div class="idx">04</div>
+      <div class="body">
+        <span class="tag">OFFICIAL SHOP</span>
+        <h3>ショップ</h3>
+        <p>オリジナルグッズ・音源データ・デジタルコンテンツの購入はこちら</p>
+      </div>
+      <div class="arrow">›</div>
+    </a>
+    <div class="shop-cta">→ 全カテゴリの収益はショップに集約されます</div>
+  </section>
+
+  <section class="strip">
+    <h2>NOW PLAYING</h2>
+    <div class="video-wrap">
+      <iframe src="https://www.youtube.com/embed/2LJgjeQki0k" title="MICVICTORY" allowfullscreen></iframe>
+    </div>
+  </section>
+
+  <section class="strip" id="follow">
+    <h2>FOLLOW & SUBSCRIBE</h2>
+    <div class="follow-row">
+      <a href="#">YouTube</a>
+      <a href="#">TikTok</a>
+      <a href="#">Threads</a>
+    </div>
+  </section>
+
+  <div class="ad-slot">
+    <div class="box">AD SLOT — Google AdSense 広告枠(コード設置予定)</div>
+  </div>
+</main>
+
+<footer>
+  © 2026 MICVICTORY —
+  <a href="https://mikitan.github.io/">HOME</a> ·
+  <a href="https://mikitan.github.io/shop.html">SHOP</a>
+</footer>
+
+</body>
+</html>
