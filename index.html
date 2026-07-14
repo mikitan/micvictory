@@ -55,6 +55,44 @@
     </section>
 <a href="new.html" rel="nofollow ">new</a>
 <a href="https://claude.ai/public/artifacts/947b4e5d-f09a-42cd-90ec-8605c733e620" rel="nofollow ">baz</a>
+
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>SNSクイックアクセスツール</title>
+    <style>
+        .container { display: flex; flex-direction: column; gap: 10px; width: 300px; }
+        .sns-btn { padding: 12px; cursor: pointer; border-radius: 8px; border: none; background: #007bff; color: white; font-weight: bold; }
+        .sns-btn:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+
+    <h3>SNSへ移動＆タグコピー</h3>
+    <div class="container">
+        <button class="sns-btn" onclick="openAndCopy('https://www.tiktok.com/', '#TikTok #おすすめ #fyp')">TikTok を開く</button>
+        <button class="sns-btn" onclick="openAndCopy('https://www.youtube.com/', '#YouTube #動画 #登録')">YouTube を開く</button>
+        <button class="sns-btn" onclick="openAndCopy('https://www.facebook.com/', '#Facebook #拡散 #ビジネス')">Facebook を開く</button>
+        <button class="sns-btn" onclick="openAndCopy('https://line.me/', '#LINE #告知 #ライフ')">LINE を開く</button>
+        <button class="sns-btn" onclick="openAndCopy('https://x.com/', '#X #拡散希望 #トレンド')">X を開く</button>
+        <button class="sns-btn" onclick="openAndCopy('https://www.instagram.com/', '#Instagram #インスタ映え #日常')">Instagram を開く</button>
+    </div>
+
+    <script>
+        function openAndCopy(url, tags) {
+            // 1. クリップボードにコピー
+            navigator.clipboard.writeText(tags).then(() => {
+                alert("タグをコピーしました: " + tags);
+            });
+            // 2. 新しいタブでリンクを開く
+            window.open(url, '_blank');
+        }
+    </script>
+</body>
+</html>
+
         <h2>Privacy Policy</h2>
         <p style="font-size: 0.85rem; color: #888;">当サイトはGoogle AdSenseおよび各種解析ツールを利用しています。Cookieによる匿名データ収集を行い、プライバシーに配慮した運営を行っています。</p>
     </section>
