@@ -14,11 +14,16 @@
         section { margin-bottom: 40px; padding: 20px; background: #111; border-radius: 8px; border: 1px solid #222; }
         
         /* Elements */
-        h2 { color: var(--gold); border-left: 4px solid var(--gold); padding-left: 15px; }
+        h2 { color: var(--gold); border-left: 4px solid var(--gold); padding-left: 15px; margin-top: 0; }
         .cta-btn { display: inline-block; padding: 12px 30px; background: var(--gold); color: #000; text-decoration: none; font-weight: bold; border-radius: 25px; margin-top: 15px; }
         .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
         .video-card { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; }
         .video-card iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+
+        /* SNS Tool Styles */
+        .sns-container { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 250px; margin-top: 15px; }
+        .sns-btn { padding: 12px; cursor: pointer; border-radius: 8px; border: none; background: #007bff; color: white; font-weight: bold; text-align: center; }
+        .sns-btn:hover { background: #0056b3; }
         
         footer { text-align: center; padding: 40px; font-size: 0.8rem; color: #555; }
     </style>
@@ -53,46 +58,21 @@
             <div class="video-card"><iframe src="https://www.youtube.com/embed/pQY0gIbc6DM" allowfullscreen></iframe></div>
         </div>
     </section>
-<a href="new.html" rel="nofollow ">new</a>
-<a href="https://claude.ai/public/artifacts/947b4e5d-f09a-42cd-90ec-8605c733e620" rel="nofollow ">baz</a>
 
+    <section>
+        <h2>SNSツール</h2>
+        <p>SNSへ移動＆ハッシュタグコピー</p>
+        <div class="sns-container">
+            <button class="sns-btn" onclick="openAndCopy('https://www.tiktok.com/', '#TikTok #おすすめ #fyp')">TikTok を開く</button>
+            <button class="sns-btn" onclick="openAndCopy('https://www.youtube.com/', '#YouTube #動画 #登録')">YouTube を開く</button>
+            <button class="sns-btn" onclick="openAndCopy('https://www.facebook.com/', '#Facebook #拡散 #ビジネス')">Facebook を開く</button>
+            <button class="sns-btn" onclick="openAndCopy('https://line.me/', '#LINE #告知 #ライフ')">LINE を開く</button>
+            <button class="sns-btn" onclick="openAndCopy('https://x.com/', '#X #拡散希望 #トレンド')">X を開く</button>
+            <button class="sns-btn" onclick="openAndCopy('https://www.instagram.com/', '#Instagram #インスタ映え #日常')">Instagram を開く</button>
+        </div>
+    </section>
 
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>SNSツール</title>
-    <style>
-        .container { display: flex; flex-direction: column; gap: 10px; width: 200px; }
-        .sns-btn { padding: 12px; cursor: pointer; border-radius: 8px; border: none; background: #007bff; color: white; font-weight: bold; }
-        .sns-btn:hover { background: #0056b3; }
-    </style>
-</head>
-<body>
-
-<h3>SNSへ移動＆タグコピー</h3>
-    <div class="container">
-        <button class="sns-btn" onclick="openAndCopy('https://www.tiktok.com/', '#TikTok #おすすめ #fyp')">TikTok を開く</button>
-        <button class="sns-btn" onclick="openAndCopy('https://www.youtube.com/', '#YouTube #動画 #登録')">YouTube を開く</button>
-        <button class="sns-btn" onclick="openAndCopy('https://www.facebook.com/', '#Facebook #拡散 #ビジネス')">Facebook を開く</button>
-        <button class="sns-btn" onclick="openAndCopy('https://line.me/', '#LINE #告知 #ライフ')">LINE を開く</button>
-        <button class="sns-btn" onclick="openAndCopy('https://x.com/', '#X #拡散希望 #トレンド')">X を開く</button>
-        <button class="sns-btn" onclick="openAndCopy('https://www.instagram.com/', '#Instagram #インスタ映え #日常')">Instagram を開く</button>
-    </div>
-
-    <script>
-        function openAndCopy(url, tags) {
-            // 1. クリップボードにコピー
-            navigator.clipboard.writeText(tags).then(() => {
-                alert("タグをコピーしました: " + tags);
-            });
-            // 2. 新しいタブでリンクを開く
-            window.open(url, '_blank');
-        }
-    </script>
-</body>
-</html>
-
+    <section>
         <h2>Privacy Policy</h2>
         <p style="font-size: 0.85rem; color: #888;">当サイトはGoogle AdSenseおよび各種解析ツールを利用しています。Cookieによる匿名データ収集を行い、プライバシーに配慮した運営を行っています。</p>
     </section>
@@ -102,6 +82,19 @@
 <footer>
     &copy; 2027MICVICTORY VALUE WORLD
 </footer>
+
+<script>
+    function openAndCopy(url, tags) {
+        // 1. クリップボードにコピー
+        navigator.clipboard.writeText(tags).then(() => {
+            alert("タグをコピーしました: " + tags);
+        }).catch(err => {
+            console.error('コピーに失敗しました', err);
+        });
+        // 2. 新しいタブでリンクを開く
+        window.open(url, '_blank');
+    }
+</script>
 
 </body>
 </html>
